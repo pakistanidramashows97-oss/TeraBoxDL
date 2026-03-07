@@ -9,6 +9,6 @@ class script(object):
 <b>‣ Language: <a href=https://www.python.org>Python</a>
 ‣ Database: <a href=https://cloud.mongodb.com>MongoDB</a>
 ‣ Hosted On: <a href=https://www.heroku>Heroku</a>
-‣ Main Channel: <a href=https://t.me/Botclusters>BotClusters</a>
-‣ Support Group: <a href=https://t.me/+E90oYz68k-gxMmY0>Team Roku</a></b></blockquote>
+‣ Main Channel: <a href=https://t.me/Anujedits76>Anuj Kumar</a>
+‣ Support Group: <a href=https://t.me/arafta_hindi_dubbed_webseries>Team Arafta</a></b></blockquote>
 """
