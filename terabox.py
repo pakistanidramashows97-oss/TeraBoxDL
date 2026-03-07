@@ -10,5 +10,5 @@ class script(object):
 ‣ Database: <a href=https://cloud.mongodb.com>MongoDB</a>
 ‣ Hosted On: <a href=https://www.heroku>Heroku</a>
 ‣ Main Channel: <a href=https://t.me/Anujedits76>Anuj</a>
-‣ Support Group: <a href=https://t.me/arafta_hindi_dubbed_webseries>Team Arafta</a></b></blockquote>
+‣ Support Group: <a href=https://t.me/arafta_hindi_dubbed_all_episode>Team arafta hindi dubbed all episode chat</a></b></blockquote>
 """
