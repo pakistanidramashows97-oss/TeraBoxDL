@@ -15,4 +15,4 @@ python-dotenv
 tgcrypto
 uvloop
 aria2p
-Flask>=2.3,<2.4
+Flask
