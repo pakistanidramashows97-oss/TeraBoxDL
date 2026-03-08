@@ -71,7 +71,7 @@ try:
     aria2 = aria2p.API(
         aria2p.Client(
             host="http://localhost",
-            port=8080,
+            port=6800,
             secret=Var.ARIA2_SECRET
         )
     )
