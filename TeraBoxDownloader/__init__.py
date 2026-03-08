@@ -1,94 +1,88 @@
-import aria2p
+import re
+import logging
+import subprocess
 import asyncio
-from time import time
-from truelink import TrueLinkResolver
-from asyncio import Lock, new_event_loop, set_event_loop
-from os import path as ospath, mkdir, system, getenv
-from logging import INFO, ERROR, FileHandler, StreamHandler, basicConfig, getLogger
-from traceback import format_exc
-from asyncio import Queue, Lock
+from aiofiles import open as aiopen
+from datetime import datetime
+from pymongo import MongoClient
+from os import path as ospath, execl, kill
+from sys import executable
+from signal import SIGKILL
+from functools import partial, wraps
+from asyncio import get_event_loop, gather
+from pyrogram import Client, idle
+from pyrogram.types import BotCommand
+from pyrogram.filters import command, user, private
+from TeraBoxDownloader import bot, Var, LOGS, bot_loop, scheduler, folder_task_queue, folder_processing
+from TeraBoxDownloader.helper.utils import is_aria2_running, start_aria2
+from TeraBoxDownloader.modules.fsub import load_channels 
+from TeraBoxDownloader.core.func_utils import new_task, editMessage
+from asyncio import create_task, create_subprocess_exec, create_subprocess_shell, run as asyrun, all_tasks, gather, sleep as asleep
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from pyrogram import Client
-from pyrogram.enums import ParseMode
-from dotenv import load_dotenv
-from uvloop import install
+from pyrogram import utils as pyroutils
+pyroutils.MIN_CHAT_ID = -999999999999
+pyroutils.MIN_CHANNEL_ID = -100999999999999
 
-install()
-basicConfig(format="[%(asctime)s] [%(name)s | %(levelname)s] - %(message)s [%(filename)s:%(lineno)d]",
-            datefmt="%m/%d/%Y, %H:%M:%S %p",
-            handlers=[FileHandler('log.txt'), StreamHandler()],
-            level=INFO)
-
-getLogger("pyrogram").setLevel(ERROR)
-LOGS = getLogger(__name__)
-
-active_downloads = {}
-last_upload_update = {}
-last_upload_update = {}
-last_upload_progress = {}
-user_folder_selections = {}
-folder_processing = False 
-folder_processing_lock = asyncio.Lock()
-last_upload_speed = {}
-lock = asyncio.Lock()
-download_lock = asyncio.Lock()
-folder_task_queue = asyncio.Queue()
-UPDATE_INTERVAL = 5 
-MIN_PROGRESS_STEP = 15 
-SPLIT_SIZE = 2 * 1024 * 1024 * 1024
-BUTTONS_PER_PAGE = 12
-__version__ = "1.0"
-StartTime = time()
-resolver = TrueLinkResolver()
-load_dotenv('terabox.env')
-
-VALID_DOMAINS = [
-    'terabox.com', 'nephobox.com', '4funbox.com', 'mirrobox.com', 
-    'momerybox.com', 'teraboxapp.com', '1024tera.com', 
-    'terabox.app', 'gibibox.com', 'goaibox.com', 'terasharelink.com', 
-    'teraboxlink.com', 'terafileshare.com', '1024terabox.com'
-]
-
-class Var:
-    API_ID, API_HASH, BOT_TOKEN = getenv("API_ID"), getenv("API_HASH"), getenv("BOT_TOKEN")
-    MONGO_URI = getenv("MONGO_URI")
-    if not BOT_TOKEN or not API_HASH or not API_ID or not MONGO_URI:
-        LOGS.critical('Important Variables Missing. Fill Up and Retry..!! Exiting Now...')
-        exit(1)
-    FSUB_CHATS = list(map(int, getenv('FSUB_CHATS', "0").split()))
-    LOG_CHANNEL = int(getenv("LOG_CHANNEL") or 0) 
-    FSUB_LOG_CHANNEL = int(getenv("FSUB_LOG_CHANNEL") or LOG_CHANNEL or 0)  
-    DB_NAME = getenv("DB_NAME") or "TeraBoxDownloaderBot"
-    ADMINS = list(map(int, getenv("ADMINS", "1242011540").split()))
-    START_PHOTO = getenv("START_PHOTO", "https://i.ibb.co/G4PtskS2/image.png")
-    START_MSG = getenv("START_MSG", "<blockquote>𝖴𝗉𝗍𝗂𝗆𝖾: {uptime} <b>|</b> 𝖵𝖾𝗋𝗌𝗂𝗈𝗇: {version}</blockquote>\n<blockquote><b>Hey {first_name}</b>\n\n<b>𝗂 𝖺𝗆 𝖺 𝗍𝖾𝗋𝖺𝖻𝗈𝗑 𝖽𝗈𝗐𝗇𝗅𝗈𝖺𝖽𝖾𝗋 𝖻𝗈𝗍. 𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝖾𝗋𝖺𝖻𝗈𝗑 𝗅𝗂𝗇𝗄 𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝖽𝗈𝗐𝗇𝗅𝗈𝖺𝖽 𝗂𝗍 𝗐𝗂𝗍𝗁𝗂𝗇 𝖺 𝖿𝖾𝗐 𝗌𝖾𝖼𝗈𝗇𝖽𝗌 𝖺𝗇𝖽 𝗌𝖾𝗇𝖽 𝗂𝗍 𝗍𝗈 𝗒𝗈𝗎</b></blockquote>")
-    START_BUTTONS = getenv("START_BUTTONS", "UPDATES|https://t.me/BotClusters SUPPORT|https://t.me/+E90oYz68k-gxMmY0\n ABOUT|about HELP|help")
-    ARIA2_SECRET = getenv("ARIA2_SECRET", "F91D6A347E9B0ACFA517CC0AB634E2F4F68891E90ADAD3CE57F26EC99B18E6CFB2172C6")
-    DOWNLOAD_DIR = getenv("DOWNLOAD_DIR", "downloads")  
-            
-try:
-    aria2 = aria2p.API(
-        aria2p.Client(
-            host="http://localhost",
-            port=6800,
-            secret=Var.ARIA2_SECRET
-        )
-    )
-            
-    bot_loop = new_event_loop()
-    set_event_loop(bot_loop)
-    bot = Client(
-        name="TeraBoxDownloader",
-        api_id=Var.API_ID,
-        api_hash=Var.API_HASH,
-        bot_token=Var.BOT_TOKEN,
-        plugins=dict(root="TeraBoxDownloader/modules"),
-        parse_mode=ParseMode.HTML,
-        workers=300
-    )
-            
-    scheduler = AsyncIOScheduler(event_loop=bot_loop)
-except Exception as ee:
-    LOGS.error("Initialization error: %s", str(ee))
-    exit(1)
+@bot.on_message(command('restart') & user(Var.ADMINS))
+@new_task
+async def restart(client, message):
+    rmessage = await message.reply('<i>Restarting...</i>')
+    async with aiopen(".restartmsg", "w") as f:
+        await f.write(f"{rmessage.chat.id}\n{rmessage.id}\n")
+    execl(executable, executable, "-m", "TeraBoxDownloader")
+    
+async def restart():
+    if ospath.isfile(".restartmsg"):
+        with open(".restartmsg") as f:
+            chat_id, msg_id = map(int, f)
+        try:
+            await bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=f"<i>Restarted at {datetime.now().strftime('%H:%M:%S')}</i>")
+        except Exception as e:
+            LOGS.error(e)
+                        
+async def main():
+        start_aria2()
+        await bot.start() 
+        await bot.set_bot_commands([
+            BotCommand("start", "Check Bot Alive Status !"),
+            BotCommand("folder", "Download TeraBox Folder Links.. !"),
+            BotCommand("restart", "[ADMIN] Restart Bot.. !"),
+            BotCommand("getchannels", "Check Force Sub Channels.. !"),
+            BotCommand("remchannel", "[ADMIN] Remove Force Sub Channels.. !"),
+            BotCommand("addchannel", "[ADMIN] Add Force Sub Channels.. !"),
+            BotCommand("status", "[ADMIN] Check Users.. !"),
+            BotCommand("broadcast", "[ADMIN] Broadcast Message To All Users.. !"),
+        ])
+        await restart()
+        await load_channels()
+        LOGS.info(r"""
+        
+███╗   ███╗██╗   ██╗███████╗████████╗███████╗██████╗ ██╗   ██╗    ██████╗ ███████╗███╗   ███╗ ██████╗ ███╗   ██╗
+████╗ ████║╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔════╝████╗ ████║██╔═══██╗████╗  ██║
+██╔████╔██║ ╚████╔╝ ███████╗   ██║   █████╗  ██████╔╝ ╚████╔╝     ██║  ██║█████╗  ██╔████╔██║██║   ██║██╔██╗ ██║
+██║╚██╔╝██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██╔══██╗  ╚██╔╝      ██║  ██║██╔══╝  ██║╚██╔╝██║██║   ██║██║╚██╗██║
+██║ ╚═╝ ██║   ██║   ███████║   ██║   ███████╗██║  ██║   ██║       ██████╔╝███████╗██║ ╚═╝ ██║╚██████╔╝██║ ╚████║
+╚═╝     ╚═╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═════╝ ╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+""")    
+        LOGS.info(r"""
+██████╗  ██████╗ ████████╗    ███████╗████████╗ █████╗ ██████╗ ████████╗███████╗██████╗ 
+██╔══██╗██╔═══██╗╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔══██╗╚══██╔══╝██╔════╝██╔══██╗
+██████╔╝██║   ██║   ██║       ███████╗   ██║   ███████║██████╔╝   ██║   █████╗  ██║  ██║
+██╔══██╗██║   ██║   ██║       ╚════██║   ██║   ██╔══██║██╔══██╗   ██║   ██╔══╝  ██║  ██║
+██████╔╝╚██████╔╝   ██║       ███████║   ██║   ██║  ██║██║  ██║   ██║   ███████╗██████╔╝
+╚═════╝  ╚═════╝    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══
+""")
+        await idle()
+        LOGS.info('Stopping Bot...')
+        await bot.stop()
+        LOGS.info(r"""
+██████╗  ██████╗ ████████╗    ███████╗████████╗ ██████╗ ██████╗ ██████╗ ███████╗██████╗ 
+██╔══██╗██╔═══██╗╚══██╔══╝    ██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗
+██████╔╝██║   ██║   ██║       ███████╗   ██║   ██║   ██║██████╔╝██████╔╝█████╗  ██║  ██║
+██╔══██╗██║   ██║   ██║       ╚════██║   ██║   ██║   ██║██╔═══╝ ██╔═══╝ ██╔══╝  ██║  ██║
+██████╔╝╚██████╔╝   ██║       ███████║   ██║   ╚██████╔╝██║     ██║     ███████╗██████╔╝
+╚═════╝  ╚═════╝    ╚═╝       ╚══════╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝     ╚══════╝╚═══
+""")
+    
+if __name__ == "__main__":
+    bot_loop.run_until_complete(main())
