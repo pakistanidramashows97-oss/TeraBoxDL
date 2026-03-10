@@ -60,10 +60,10 @@ class Var:
     LOG_CHANNEL = int(getenv("LOG_CHANNEL") or 0) 
     FSUB_LOG_CHANNEL = int(getenv("FSUB_LOG_CHANNEL") or LOG_CHANNEL or 0)  
     DB_NAME = getenv("DB_NAME") or "TeraBoxDownloaderBot"
-    ADMINS = list(map(int, getenv("ADMINS", "1242011540").split()))
-    START_PHOTO = getenv("START_PHOTO", "https://i.ibb.co/G4PtskS2/image.png")
+    ADMINS = list(map(int, getenv("ADMINS", "7521421400").split()))
+    START_PHOTO = getenv("START_PHOTO", "https://i.ibb.co/WpKRVMKy/7168219724-28094.jpg")
     START_MSG = getenv("START_MSG", "<blockquote>𝖴𝗉𝗍𝗂𝗆𝖾: {uptime} <b>|</b> 𝖵𝖾𝗋𝗌𝗂𝗈𝗇: {version}</blockquote>\n<blockquote><b>Hey {first_name}</b>\n\n<b>𝗂 𝖺𝗆 𝖺 𝗍𝖾𝗋𝖺𝖻𝗈𝗑 𝖽𝗈𝗐𝗇𝗅𝗈𝖺𝖽𝖾𝗋 𝖻𝗈𝗍. 𝗌𝖾𝗇𝖽 𝗆𝖾 𝖺𝗇𝗒 𝗍𝖾𝗋𝖺𝖻𝗈𝗑 𝗅𝗂𝗇𝗄 𝖺𝗇𝖽 𝗂 𝗐𝗂𝗅𝗅 𝖽𝗈𝗐𝗇𝗅𝗈𝖺𝖽 𝗂𝗍 𝗐𝗂𝗍𝗁𝗂𝗇 𝖺 𝖿𝖾𝗐 𝗌𝖾𝖼𝗈𝗇𝖽𝗌 𝖺𝗇𝖽 𝗌𝖾𝗇𝖽 𝗂𝗍 𝗍𝗈 𝗒𝗈𝗎</b></blockquote>")
-    START_BUTTONS = getenv("START_BUTTONS", "UPDATES|https://t.me/BotClusters SUPPORT|https://t.me/+E90oYz68k-gxMmY0\n ABOUT|about HELP|help")
+    START_BUTTONS = getenv("START_BUTTONS", "UPDATES|https://t.me/arafta_hindi_dubbed_webseries SUPPORT|https://t.me/arafta_hindi_dubbed_all_episode\n ABOUT|about HELP|help")
     ARIA2_SECRET = getenv("ARIA2_SECRET", "F91D6A347E9B0ACFA517CC0AB634E2F4F68891E90ADAD3CE57F26EC99B18E6CFB2172C6")
     DOWNLOAD_DIR = getenv("DOWNLOAD_DIR", "downloads")  
             
@@ -84,7 +84,7 @@ try:
         api_hash=Var.API_HASH,
         bot_token=Var.BOT_TOKEN,
         plugins=dict(root="TeraBoxDownloader/modules"),
-        parse_mode=ParseMode.HTML,
+        parse_mode=ParseMode.MP4,
         workers=300
     )
             
