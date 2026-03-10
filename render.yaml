@@ -4,7 +4,7 @@ services:
     branch: master
     plan: free
     dockerfilePath: ./Dockerfile
-    repo: https://github.com/mysterydemon/Botclusters
+    repo: https://github.com/pakistanidramashows97-oss/TeraBoxDL
     env: docker
     envVars:
       - key: CLUSTER_01
