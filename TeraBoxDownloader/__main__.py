@@ -20,8 +20,8 @@ from TeraBoxDownloader.core.func_utils import new_task, editMessage
 from asyncio import create_task, create_subprocess_exec, create_subprocess_shell, run as asyrun, all_tasks, gather, sleep as asleep
 
 from pyrogram import utils as pyroutils
-pyroutils.MIN_CHAT_ID = -999999999999
-pyroutils.MIN_CHANNEL_ID = -100999999999999
+pyroutils.MIN_CHAT_ID = -1003515041061
+pyroutils.MIN_CHANNEL_ID = -1003758676689
 
 @bot.on_message(command('restart') & user(Var.ADMINS))
 @new_task
